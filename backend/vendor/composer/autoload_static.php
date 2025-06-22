@@ -55,6 +55,10 @@ class ComposerStaticInitbb613503919f4c06e78baa21d7cb06c1
             'Psr\\Clock\\' => 10,
             'PhpOption\\' => 10,
         ),
+        'N' => 
+        array (
+            'Neomerx\\Cors\\' => 13,
+        ),
         'L' => 
         array (
             'Laravel\\SerializableClosure\\' => 28,
@@ -106,7 +110,8 @@ class ComposerStaticInitbb613503919f4c06e78baa21d7cb06c1
         'Tuupola\\Middleware\\' => 
         array (
             0 => __DIR__ . '/..' . '/tuupola/slim-jwt-auth/src',
-            1 => __DIR__ . '/..' . '/tuupola/callable-handler/src',
+            1 => __DIR__ . '/..' . '/tuupola/cors-middleware/src',
+            2 => __DIR__ . '/..' . '/tuupola/callable-handler/src',
         ),
         'Tuupola\\Http\\Factory\\' => 
         array (
@@ -177,6 +182,10 @@ class ComposerStaticInitbb613503919f4c06e78baa21d7cb06c1
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
+        ),
+        'Neomerx\\Cors\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/neomerx/cors-psr7/src',
         ),
         'Laravel\\SerializableClosure\\' => 
         array (

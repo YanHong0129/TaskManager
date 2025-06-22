@@ -21,6 +21,13 @@ $container = new Container();
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
+// Add BodyParsingMiddleware
+$app->addBodyParsingMiddleware();
+
+// Add RoutingMiddleware
+// This should be added before the CORS middleware
+$app->addRoutingMiddleware();
+
 // Setup Eloquent ORM (Laravel's database layer)
 $capsule = new Capsule;
 $capsule->addConnection([
@@ -35,13 +42,23 @@ $capsule->addConnection([
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
-// Add JWT middleware (protects /api/* routes, skips /login)
+// Add CORS middleware
+$app->add(new \Tuupola\Middleware\CorsMiddleware([
+    "origin" => ["http://localhost:5174", "http://localhost:5176"],
+    "methods" => ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "headers.allow" => ["Authorization", "Content-Type", "Accept", "Origin"],
+    "credentials" => true,
+    "cache" => 86400 // Cache for 1 day
+]));
+
+// Add JWT middleware (protects /api/* routes, skips /login and /register)
 $app->add(new Tuupola\Middleware\JwtAuthentication([
     "secret" => getenv("JWT_SECRET"),
-    "path" => ["/api"],
-    "ignore" => ["/login"],
+    "path" => "/api",
+    "ignore" => ["/login", "/register"],
     "error" => function ($response, $arguments) {
-        $data = ["error" => "Unauthorized"];
+        $data["status"] = "error";
+        $data["message"] = $arguments["message"];
         $response->getBody()->write(json_encode($data));
         return $response->withHeader("Content-Type", "application/json")->withStatus(401);
     }
@@ -50,7 +67,8 @@ $app->add(new Tuupola\Middleware\JwtAuthentication([
 // Load your routes (tasks, login, etc.)
 (require __DIR__ . '/../routes/api.php')($app);
 
-// Run the application
-$app->addBodyParsingMiddleware();
+// Add ErrorMiddleware
+// This should be the last middleware added
+$app->addErrorMiddleware(true, true, true);
 
 $app->run();

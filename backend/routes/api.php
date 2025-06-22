@@ -5,73 +5,44 @@ use Firebase\JWT\JWT;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Controllers\TaskController;
+use App\Controllers\AuthController;
 use App\Models\User;
 
 return function (App $app) {
+    // Public routes (no JWT required)
+    $app->post('/register', AuthController::class . ':register');
+    $app->post('/login', AuthController::class . ':login');
 
-    $app->post('/register', function (Request $request, Response $response) {
-    $body = $request->getParsedBody();
-    $email = $body['email'] ?? '';
-    $password = $body['password'] ?? '';
+    // Protected routes (JWT required)
+    // User management endpoints
+    $app->get('/api/profile', AuthController::class . ':profile');
+    $app->put('/api/profile', AuthController::class . ':updateProfile');
+    $app->put('/api/change-password', AuthController::class . ':changePassword');
 
-    // Validate email + password
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6) {
-        $response->getBody()->write(json_encode(['error' => 'Invalid email or password too short']));
-        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
-    }
-
-    // Check if user already exists
-    if (User::where('email', $email)->exists()) {
-        $response->getBody()->write(json_encode(['error' => 'Email already registered']));
-        return $response->withStatus(409)->withHeader('Content-Type', 'application/json');
-    }
-
-    // Create user with hashed password
-    $user = User::create([
-        'email' => $email,
-        'password' => password_hash($password, PASSWORD_DEFAULT)
-    ]);
-
-    $response->getBody()->write(json_encode(['message' => 'User registered successfully']));
-    return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
-});
-
-    // 👤 Login endpoint (hardcoded user for demo)
-    $app->post('/login', function (Request $request, Response $response) {
-        $body = $request->getParsedBody();
-
-        $email = $body['email'] ?? '';
-        $password = $body['password'] ?? '';
-
-        if ($email !== 'demo@demo.com' || $password !== 'demo') {
-            $response->getBody()->write(json_encode(['error' => 'Invalid credentials']));
-            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
-        }
-
-        $now = time();
-        $payload = [
-            "iat" => $now,
-            "exp" => $now + 3600, // expires in 1 hour
-            "sub" => 1,
-            "email" => $email
-        ];
-
-        $token = JWT::encode($payload, getenv('JWT_SECRET'), 'HS256');
-
-        $response->getBody()->write(json_encode(['token' => $token]));
-        return $response->withHeader('Content-Type', 'application/json');
-    });
-
-    // 📝 Task CRUD Endpoints (all require JWT)
-    $app->post('/api/tasks', TaskController::class . ':create');
+    // Task management endpoints
+    $app->get('/api/tasks/stats', TaskController::class . ':stats');
     $app->get('/api/tasks', TaskController::class . ':index');
     $app->get('/api/tasks/{id}', TaskController::class . ':show');
+    $app->post('/api/tasks', TaskController::class . ':create');
     $app->put('/api/tasks/{id}', TaskController::class . ':update');
     $app->delete('/api/tasks/{id}', TaskController::class . ':destroy');
-        // ✅ Simple test route
-    $app->get('/', function (Request $request, Response $response) {
-        $response->getBody()->write("✅ Slim backend is running");
-        return $response;
-    });
+    $app->patch('/api/tasks/{id}/toggle', TaskController::class . ':toggle');
 
+    // Health check endpoint
+    $app->get('/', function ($request, $response) {
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'message' => 'TaskMate API is running',
+            'version' => '1.0.0',
+            'endpoints' => [
+                'public' => ['/register', '/login'],
+                'protected' => [
+                    '/api/profile',
+                    '/api/tasks',
+                    '/api/tasks/stats'
+                ]
+            ]
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
 };
